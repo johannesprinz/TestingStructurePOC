@@ -1,13 +1,79 @@
-﻿using NUnit.Framework;
+﻿using FluentAssertions;
+using NUnit.Framework;
+using PayProcessor.App;
 using StoryQ;
 using StoryQ.Formatting.Parameters;
 using StoryQ.TextualSteps;
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace Test.System {
     [TestFixture]
     public class StoryQSample {
+        [Test]
+        public void PayrollTest() {
+            new Story("Paymaster")
+                .InOrderTo("Get paid for the hours I work")
+                .AsA("Employee")
+                .IWant("To be paid the correct amount")
+                .WithScenario("Standard pay and no overtime")
+                .Given(GivenAnEmployeeSetup)
+                .And(GivenHourlyPayTypeEarningStandardRateSetup)
+                .And(GivenTimecardsAddUpToLessThanOvertimeSetup)
+                .And(GivenPaymasterDispositionSetup)
+                .And(GivenTodayIsFridaySetup)
+                .When(RunPayroll)
+                .Then(PaymasterWillHaveaCheckForHoursWorkedTimesHourlyRate);
+        }
+
+        private Employee _employee;
+
+        private void GivenAnEmployeeSetup() {
+            _employee = new Employee("Bob");
+        }
+
+        private HourlyPayType _hourlyPayType;
+        private const int StandardHourlyRate = 1000;
+
+        private void GivenHourlyPayTypeEarningStandardRateSetup() {
+            _hourlyPayType = new HourlyPayType(StandardHourlyRate);
+            _employee.PayType = _hourlyPayType;
+        }
+
+        private const int DaysPerWeek = 5;
+        private const int MaxRegularHoursPerDay = 8;
+
+        private void GivenTimecardsAddUpToLessThanOvertimeSetup() {
+            for (var day = 0; day < DaysPerWeek; day++) {
+                _hourlyPayType.AddTimeCard(new TimeCard(MaxRegularHoursPerDay));
+            }
+        }
+
+        private void GivenPaymasterDispositionSetup() {
+            _employee.PayMaster = new PayMaster();
+        }
+
+        private DateTime _today;
+
+        private void GivenTodayIsFridaySetup() {
+            _today = new DateTime(2015, 3, 6);
+        }
+
+        private void RunPayroll() {
+            var payroll = new Payroll();
+            payroll.Add(_employee);
+            payroll.Run(_today);
+        }
+
+        private void PaymasterWillHaveaCheckForHoursWorkedTimesHourlyRate() {
+            var payMaster = _employee.PayMaster;
+            var checks = payMaster.HeldPayChecks;
+            checks.Should().HaveCount(1);
+            var check = checks.First();
+            check.Amount.Should().Be(StandardHourlyRate * MaxRegularHoursPerDay * DaysPerWeek);
+        }
+
         [Test]
         public void Given_Scenario() {
             new Story("Data Safety")

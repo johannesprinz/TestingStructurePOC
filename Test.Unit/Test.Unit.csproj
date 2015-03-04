@@ -53,6 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NestedFixtureTest.cs" />
     <Compile Include="GivenTodayIsFriday.cs" />
     <Compile Include="GivenAnEmployee.cs" />
     <Compile Include="GivenHourlyPayTypeEarningStandardRate.cs" />
